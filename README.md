@@ -88,26 +88,24 @@ prediction = classifier.predict(X)
 
 Measured with `pixi run bench` on an Intel Xeon E5-2697 v4 at 2.30 GHz
 (72 logical CPUs), Linux 6.8.0-136-generic. The environment used Mojo
-1.0.0b3.dev2026072406, NumPy 2.5.1, SciPy 1.18.0, scikit-learn 1.9.0, and
+1.1.0.dev2026081105, NumPy 2.5.1, SciPy 1.18.0, scikit-learn 1.9.0, and
 scikit-multilearn 0.2.0. Each value is the best of three runs after warm-up.
 The Pixi task holds `/tmp/mojo-bench.lock` for the complete run.
 
 | case | Mojo port | upstream 0.2.0 | speedup |
 | --- | ---: | ---: | ---: |
-| BRkNNa.predict (8k train, 2k query, 24d, 12 labels) | 44.54 ms | 1031.29 ms | 23.15x |
-| BRkNNb.predict (8k train, 2k query, 24d, 12 labels) | 173.00 ms | 1712.84 ms | 9.90x |
-| MLkNN.fit (3k x 24, 12 labels, k=10) | 51.00 ms | 2945.44 ms | 57.76x |
-| MLkNN.predict (8k train, 2k query, 24d, 12 labels) | 83.51 ms | 1766.57 ms | 21.15x |
-| LabelPowerset.transform (100k x 40, 10% density) | 143.52 ms | 205.18 ms | 1.43x |
-| LabelPowerset.inverse_transform (100k x 40) | 368.50 ms | 9799.10 ms | 26.59x |
+| BRkNNa.predict (8k train, 2k query, 24d, 12 labels) | 23.13 ms | 478.91 ms | 20.70x |
+| BRkNNb.predict (8k train, 2k query, 24d, 12 labels) | 98.23 ms | 1220.18 ms | 12.42x |
+| MLkNN.fit (3k x 24, 12 labels, k=10) | 27.18 ms | 1463.45 ms | 53.84x |
+| MLkNN.predict (8k train, 2k query, 24d, 12 labels) | 37.56 ms | 1073.39 ms | 28.58x |
+| LabelPowerset.transform (100k x 40, 10% density) | 103.47 ms | 120.48 ms | 1.16x |
+| LabelPowerset.inverse_transform (100k x 40) | 212.82 ms | 6401.98 ms | 30.08x |
 
 `LabelPowerset.transform` is still ordered dictionary construction in Python
 because first-seen class IDs and arbitrary label counts are part of the
-upstream contract. It uses compact byte keys for up to 256 labels and tuple
-keys above that, while constructing the public string mapping only for
-first-seen combinations. Its measured difference comes from that Python key
-representation, not a Mojo kernel. The inverse operation is a regular integer
-gather.
+upstream contract. It constructs the required public string mapping directly,
+with locally bound dictionary and list operations to avoid a second key map and
+repeated attribute lookup. The inverse operation is a regular integer gather.
 
 No GPU path is provided. These kernels have low arithmetic intensity, so this
 port keeps execution on the CPU and avoids device transfer and launch costs.

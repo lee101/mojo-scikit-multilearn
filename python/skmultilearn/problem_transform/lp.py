@@ -45,22 +45,23 @@ class LabelPowerset(ProblemTransformationBase):
         )
         self._clean()
         self._label_count = labels.shape[1]
-        train_vector = np.empty(labels.shape[0], dtype=np.int64)
-        tuple_combinations = {}
-        key_type = bytes if self._label_count <= 256 else tuple
+        train_vector = []
+        append_class = train_vector.append
+        combinations = self.unique_combinations_
+        get_combination = combinations.get
+        reverse_combinations = self.reverse_combinations_
+        append_combination = reverse_combinations.append
         label_names = tuple(map(str, range(self._label_count)))
         get_label_name = label_names.__getitem__
-        for row, labels_applied in enumerate(labels.rows):
-            combination = key_type(labels_applied)
-            combination_id = tuple_combinations.get(combination)
+        for labels_applied in labels.rows:
+            combination = ",".join(map(get_label_name, labels_applied))
+            combination_id = get_combination(combination)
             if combination_id is None:
-                combination_id = len(self.reverse_combinations_)
-                tuple_combinations[combination] = combination_id
-                label_string = ",".join(map(get_label_name, labels_applied))
-                self.unique_combinations_[label_string] = combination_id
-                self.reverse_combinations_.append(labels_applied)
-            train_vector[row] = combination_id
-        return train_vector
+                combination_id = len(reverse_combinations)
+                combinations[combination] = combination_id
+                append_combination(labels_applied)
+            append_class(combination_id)
+        return np.array(train_vector)
 
     def inverse_transform(self, y):
         table = np.zeros(
